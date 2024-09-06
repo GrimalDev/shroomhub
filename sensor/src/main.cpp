@@ -1,88 +1,77 @@
-
-#include "DHT.h"
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_VEML7700.h>
 #include <Arduino.h>
-#include <Wire.h>
+#include <ArduinoWebsockets.h>
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define foggerPin 14
-#define DHTPIN 12
-#define co2Pin A0
-#define co2Zero 76.63
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-// Adafruit_VEML7700 veml = Adafruit_VEML7700();
-DHT dht(DHTPIN, DHT11);
+using namespace websockets;
 
-void setup() {
-  Wire.begin();
-  Serial.begin(9600);
+const char *ssid = "Baliette-LOW-WIFI";
+const char *password = "mYF7PtCXaF9947EW2a9HcjAtd";
 
-  pinMode(foggerPin, OUTPUT);
-  pinMode(co2Pin, INPUT);
+const char *websocket_server_url = "ws://192.168.100.16:4040/ws";
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;)
-      ;
+WebsocketsClient client;
+unsigned long lastReconnectAttempt = 0;
+
+void connectToWebSocket() {
+  Serial.println("Connecting to WebSocket...");
+
+  if (client.connect(websocket_server_url)) {
+    Serial.println("Connected to WebSocket");
+  } else {
+    Serial.println("Failed to connect. Will retry...");
   }
-
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-
-  dht.begin();
 }
 
-void getTemperature() {}
+void setup() {
+  Serial.begin(115200);
 
-void getLight() {}
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
 
-void getMoisture() {}
+  // Setup WebSocket events
+  client.onMessage([](WebsocketsMessage message) {
+    Serial.print("Received: ");
+    Serial.println(message.data());
+  });
 
-void getC02() {}
+  client.onEvent([](WebsocketsEvent event, String data) {
+    if (event == WebsocketsEvent::ConnectionOpened) {
+      Serial.println("WebSocket connection opened");
+    } else if (event == WebsocketsEvent::ConnectionClosed) {
+      Serial.println("WebSocket connection closed. Attempting to reconnect...");
+    } else if (event == WebsocketsEvent::GotPing) {
+      Serial.println("Got a Ping!");
+    } else if (event == WebsocketsEvent::GotPong) {
+      Serial.println("Got a Pong!");
+    }
+  });
+
+  connectToWebSocket();
+}
 
 void loop() {
-
-  display.clearDisplay();
-  display.setCursor(0, 0);
-
-  // float lux = veml.readLux();
-  float humi = dht.readHumidity();
-  float tempC = dht.readTemperature();
-  int co2now[10];
-  int co2raw = 0;
-  int co2comp = 0;
-  int co2ppm = 0;
-  int zzz = 0;
-
-  for (int x = 0; x < 10; x++) {
-    co2now[x] = analogRead(A0);
-    delay(200);
+  // Keep WebSocket client alive
+  if (client.available()) {
+    client.poll();
   }
 
-  for (int x = 0; x < 10; x++) {
-    zzz = zzz + co2now[x];
-  }
-  co2raw = zzz / 10;
-  co2comp = co2raw - co2Zero;
-  co2ppm = map(co2comp, 0, 1023, 400, 5000);
-
-  display.println("Humidity: " + String(humi) + "%");
-  display.println("Temperature: " + String(tempC) + "C");
-  display.println("CO2: " + String(co2ppm) + " ppm");
-  // display.println("Light: " + String(lux) + " lux");
-
-  if (humi < 90) {
-    digitalWrite(foggerPin, HIGH);
-  } else {
-    digitalWrite(foggerPin, LOW);
+  // Attempt reconnection if disconnected
+  if (!client.available()) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastReconnectAttempt > 5000) { // Retry every 5 seconds
+      connectToWebSocket();
+      lastReconnectAttempt = currentTime;
+    }
   }
 
-  display.display();
-
-  delay(1000);
+  // Send a message every 5 seconds
+  static unsigned long lastTime = 0;
+  if (client.available() && millis() - lastTime > 5000) {
+    client.send("Hello world");
+    lastTime = millis();
+  }
 }

@@ -1,0 +1,10 @@
+services:
+  backend:
+    container_name: rulette_rousse_back
+    build:
+      dockerfile: Dockerfile
+      context: ./hub
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./hub/:/opt/app/api
