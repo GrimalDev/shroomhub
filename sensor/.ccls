@@ -5,10 +5,7 @@ clang
 
 -I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/include
 -I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/src
--I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/ArduinoWebsockets/src
--I/Users/grimaldev/.platformio/packages/framework-arduinoespressif8266/libraries/ESP8266WiFi/src
--I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/WiFi/src
--I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/MQ135
+-I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/ArduinoJson/src
 -I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/DHT sensor library
 -I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/Adafruit Unified Sensor
 -I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/Adafruit VEML7700 Library
@@ -17,6 +14,8 @@ clang
 -I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/Adafruit BusIO
 -I/Users/grimaldev/.platformio/packages/framework-arduinoespressif8266/libraries/SPI
 -I/Users/grimaldev/.platformio/packages/framework-arduinoespressif8266/libraries/Wire
+-I/Users/grimaldev/Documents/projects/microcontroller-codes/shroomhub/sensor/.pio/libdeps/env/ArduinoWebsockets/src
+-I/Users/grimaldev/.platformio/packages/framework-arduinoespressif8266/libraries/ESP8266WiFi/src
 -I/Users/grimaldev/.platformio/packages/framework-arduinoespressif8266/tools/sdk/include
 -I/Users/grimaldev/.platformio/packages/framework-arduinoespressif8266/cores/esp8266
 -I/Users/grimaldev/.platformio/packages/toolchain-xtensa/include
@@ -66,6 +65,9 @@ clang
 -DESP8266
 -DARDUINO_ARCH_ESP8266
 -DARDUINO_ESP8266_WEMOS_D1MINI
+-DWIFI_SSID="Baliette-LOW-WIFI"
+-DWIFI_PASSWORD="mYF7PtCXaF9947EW2a9HcjAtd"
+-DWEBSOCKET_URL="ws://192.168.100.16:4040/ws"
 -DF_CPU=80000000L
 -D__ets__
 -DICACHE_FLASH

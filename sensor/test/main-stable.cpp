@@ -14,7 +14,7 @@
 #define co2Zero 76.63
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // Adafruit_VEML7700 veml = Adafruit_VEML7700();
-DHT dht(DHTPIN, DHT11);
+DHT dht(DHTPIN, DHT22);
 
 void setup() {
   Wire.begin();
@@ -41,7 +41,7 @@ void getTemperature() {}
 
 void getLight() {}
 
-void getMoisture() {}
+void getHumidityLevel() {}
 
 void getC02() {}
 
@@ -76,7 +76,7 @@ void loop() {
   display.println("CO2: " + String(co2ppm) + " ppm");
   // display.println("Light: " + String(lux) + " lux");
 
-  if (humi < 90) {
+  if (humi < 80) {
     digitalWrite(foggerPin, HIGH);
   } else {
     digitalWrite(foggerPin, LOW);
