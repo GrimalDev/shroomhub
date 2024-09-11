@@ -8,9 +8,9 @@ return {
 			},
 		},
 		excludedPaths = {
-			"hub/backend/tmp",
-			"sensor/.pio/build",
-			"sensor/.pio/libdeps",
+			"hub/backend/tmp/",
+			"hub/frontend/node_modules/",
+			"sensor/",
 		},
 	},
 }
