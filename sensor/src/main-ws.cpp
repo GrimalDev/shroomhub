@@ -92,22 +92,49 @@ void setup() {
   Wire.begin();
   Serial.begin(115200);
 
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("SSD1306 allocation failed");
+    for (;;)
+      ;
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+
   // Connect to WiFi
   WiFi.begin(wifiSSID, wifiPassword);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Connecting to WiFi...");
+    display.println("Connecting to WiFi...");
+    display.display();
   }
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Connected to WiFi");
   Serial.println("Connected to WiFi");
+  display.display();
+
+  delay(500);
 
   // Setup WebSocket events
   client.onMessage([](WebsocketsMessage message) { responseHandler(message); });
 
   client.onEvent([](WebsocketsEvent event, String data) {
     if (event == WebsocketsEvent::ConnectionOpened) {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("WebSocket connection");
       Serial.println("WebSocket connection opened");
+      display.display();
     } else if (event == WebsocketsEvent::ConnectionClosed) {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("WebSocket connection closed");
       Serial.println("WebSocket connection closed. Attempting to reconnect...");
+      display.display();
     } else if (event == WebsocketsEvent::GotPing) {
       Serial.println("Got a Ping!");
     } else if (event == WebsocketsEvent::GotPong) {
@@ -120,31 +147,39 @@ void setup() {
   pinMode(foggerPin, OUTPUT);
   pinMode(co2Pin, INPUT);
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("SSD1306 allocation failed");
-    for (;;)
-      ;
-  }
-
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-
   dht.begin();
 }
 
 void loop() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+
   // Check if WiFi is connected
   if (WiFi.status() != WL_CONNECTED) {
+    display.println("WiFi disconnected. Reconnecting...");
     Serial.println("WiFi disconnected. Reconnecting...");
+    display.display();
     WiFi.begin(wifiSSID, wifiPassword);
     while (WiFi.status() != WL_CONNECTED) {
       delay(1000);
+      display.println("Reconnecting to WiFi...");
       Serial.println("Reconnecting to WiFi...");
+      display.display();
     }
+    display.println("Reconnected to WiFi");
     Serial.println("Reconnected to WiFi");
+    display.display();
+    delay(500);
     connectToWebSocket(); // Try to reconnect WebSocket after WiFi is back
+  }
+
+  // messages if connected to server or not
+  if (client.available()) {
+    display.println("Server found");
+    Serial.println("Server found");
+  } else {
+    display.println("No server");
+    Serial.println("No server");
   }
 
   // Keep WebSocket client alive
@@ -160,9 +195,6 @@ void loop() {
       lastReconnectAttempt = currentTime;
     }
   }
-
-  display.clearDisplay();
-  display.setCursor(0, 0);
 
   // float lux = veml.readLux();
 
