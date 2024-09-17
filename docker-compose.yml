@@ -6,5 +6,11 @@ services:
       context: ./hub/backend
     ports:
       - "4040:4040"
+    networks:
+      - backend
     volumes:
       - ./hub/backend:/opt/app/api
+
+networks:
+  backend:
+    external: true
