@@ -9,6 +9,7 @@ return {
 		},
 		excludedPaths = {
 			"hub/backend/tmp/",
+			"hub/backend/.env",
 			"hub/frontend/node_modules/",
 			"sensor/",
 		},
