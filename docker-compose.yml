@@ -1,10 +1,16 @@
 services:
   backend:
-    container_name: rulette_rousse_back
+    container_name: shroomhub-backend
     build:
       dockerfile: Dockerfile
       context: ./hub/backend
     ports:
       - "4040:4040"
+    networks:
+      - backend
     volumes:
-      - ./hub/:/opt/app/api
+      - ./hub/backend:/opt/app/api
+
+networks:
+  backend:
+    external: true
