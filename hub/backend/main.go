@@ -1,24 +1,26 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/net/websocket"
 	"net/http"
 	"os"
 )
 
-var db *sql.DB
+var db *sqlx.DB
 
 type SensorData struct {
-	Co2         int32   `json:"co2"`
-	Humidity    float32 `json:"humi"`
-	Temperature float32 `json:"temp"`
-	Luminosity  float32 `json:"lum"`
+	Co2          int32   `json:"co2" db:"co2"`
+	Humidity     float32 `json:"humi" db:"humidity"`
+	Temperature  float32 `json:"temp" db:"temperature"`
+	Luminosity   float32 `json:"lum" db:"luminosity"`
+	CreationDate string  `json:"creation_date" db:"creation_date"`
 }
 
 var lastSensorData SensorData
@@ -38,7 +40,7 @@ func initDB() {
 	dbPass := os.Getenv("DB_PASS")
 	dbHost := os.Getenv("DB_HOST")
 
-	db, err = sql.Open("mysql", dbUser+":"+dbPass+"@tcp("+dbHost+":3306)/shroomhub")
+	db, err = sqlx.Open("mysql", dbUser+":"+dbPass+"@tcp("+dbHost+":3306)/shroomhub")
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +78,7 @@ func appendSensorData(data SensorData) error {
 	return nil
 }
 
-func sensorHandler(c echo.Context) error {
+func wsHandler(c echo.Context) error {
 	websocket.Handler(func(ws *websocket.Conn) {
 		defer ws.Close()
 		for {
@@ -103,14 +105,37 @@ func sensorHandler(c echo.Context) error {
 	return nil
 }
 
+func sensorDataHandler(c echo.Context) error {
+	var sensorDataArray []SensorData
+
+	err := db.Select(&sensorDataArray, "SELECT co2, humidity, temperature, creation_date FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY DATE_FORMAT(creation_date, '%Y-%m-%d %H:00:00') ORDER BY creation_date DESC) as row_num FROM sensor_data WHERE creation_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)) as subquery WHERE row_num = 1 ORDER BY creation_date ASC")
+	if err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error fetching data from the database"})
+	}
+
+	// for i, j := 0, len(sensorDataArray)-1; i < j; i, j = i+1, j-1 {
+	// 	sensorDataArray[i], sensorDataArray[j] = sensorDataArray[j], sensorDataArray[i]
+	// }
+
+	return c.JSON(http.StatusOK, sensorDataArray)
+}
+
 func main() {
 	initEnv()
 	initDB()
 
 	e := echo.New()
+	// Add CORS middleware
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+	}))
+
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
-	e.GET("/ws", sensorHandler)
+	e.GET("/ws", wsHandler)
+	e.GET("/sensordata", sensorDataHandler)
 	e.Logger.Fatal(e.Start(":4040"))
 }
