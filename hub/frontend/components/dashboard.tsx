@@ -28,20 +28,55 @@ import {
   User,
 } from "lucide-react";
 
-// Mock data - replace this with your actual data fetching logic
-const mockData = [
-  { time: "00:00", humidity: 85, temperature: 24, co2: 800 },
-  { time: "04:00", humidity: 82, temperature: 23, co2: 850 },
-  { time: "08:00", humidity: 88, temperature: 25, co2: 900 },
-  { time: "12:00", humidity: 90, temperature: 26, co2: 950 },
-  { time: "16:00", humidity: 87, temperature: 25, co2: 920 },
-  { time: "20:00", humidity: 86, temperature: 24, co2: 880 },
-];
+import { useState, useEffect } from "react";
+// Function to fetch sensor data from the API
 
+interface SensorData {
+  creation_date: string;
+  humidity: number;
+  temperature: number;
+  co2: number;
+}
+
+async function fetchSensorData(): Promise<SensorData[]> {
+  try {
+    const response = await fetch(
+      "http://srv.grimaldev.local:4040/sensordata?start=2024-09-18&end=2024-09-18",
+    );
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+
+    return data.map((record: any) => ({
+      creation_date: new Date(record.creation_date).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        timeZone: "UTC",
+      }),
+      humidity: record.humi,
+      temperature: record.temp,
+      co2: record.co2,
+    }));
+  } catch (error) {
+    console.error("Error fetching sensor data:", error);
+    return [];
+  }
+}
 export function Dashboard() {
+  const [sensorData, setSensorData] = useState<SensorData[]>([]);
+
+  useEffect(() => {
+    async function loadSensorData() {
+      const data = await fetchSensorData();
+      setSensorData(data);
+    }
+    loadSensorData();
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar */}
       <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
         <div className="p-4">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -66,27 +101,20 @@ export function Dashboard() {
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        {/* Header */}
         <header className="bg-white dark:bg-gray-800 shadow">
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
               Dashboard
             </h1>
-            //{" "}
             <div className="flex items-center">
-              const metrics = fetch("http://localhost:4040/metrics"); //{" "}
               <Button variant="outline" size="icon" className="mr-2">
-                // <Bell className="h-4 w-4" />
-                //{" "}
+                <Bell className="h-4 w-4" />
               </Button>
-              //{" "}
             </div>
           </div>
         </header>
 
-        {/* Dashboard Content */}
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
             <Tabs defaultValue="all" className="w-full">
@@ -100,21 +128,21 @@ export function Dashboard() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <MetricCard
                     title="Humidity"
-                    data={mockData}
+                    data={sensorData}
                     dataKey="humidity"
                     unit="%"
                     color="#8884d8"
                   />
                   <MetricCard
                     title="Temperature"
-                    data={mockData}
+                    data={sensorData}
                     dataKey="temperature"
                     unit="°C"
                     color="#82ca9d"
                   />
                   <MetricCard
                     title="CO2 Level"
-                    data={mockData}
+                    data={sensorData}
                     dataKey="co2"
                     unit="ppm"
                     color="#ffc658"
@@ -124,7 +152,7 @@ export function Dashboard() {
               <TabsContent value="humidity">
                 <MetricCard
                   title="Humidity"
-                  data={mockData}
+                  data={sensorData}
                   dataKey="humidity"
                   unit="%"
                   color="#8884d8"
@@ -134,7 +162,7 @@ export function Dashboard() {
               <TabsContent value="temperature">
                 <MetricCard
                   title="Temperature"
-                  data={mockData}
+                  data={sensorData}
                   dataKey="temperature"
                   unit="°C"
                   color="#82ca9d"
@@ -144,7 +172,7 @@ export function Dashboard() {
               <TabsContent value="co2">
                 <MetricCard
                   title="CO2 Level"
-                  data={mockData}
+                  data={sensorData}
                   dataKey="co2"
                   unit="ppm"
                   color="#ffc658"
@@ -166,28 +194,35 @@ function MetricCard({ title, data, dataKey, unit, color, fullWidth = false }) {
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={fullWidth ? "h-[400px]" : "h-[200px]"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="time" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey={dataKey} stroke={color} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-4 flex justify-between items-center">
-          <span className="text-2xl font-bold">
-            {data[data.length - 1][dataKey]}
-            {unit}
-          </span>
-          <span className="text-sm text-gray-500">
-            Last updated: {data[data.length - 1].time}
-          </span>
-        </div>
+        {data.length === 0 ? (
+          <div className="h-[200px] flex items-center justify-center">
+            <p className="text-gray-500">No data available</p>
+          </div>
+        ) : (
+          <>
+            <div className={fullWidth ? "h-[400px]" : "h-[200px]"}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="creation_date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey={dataKey} stroke={color} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 flex justify-between items-center">
+              <span className="text-2xl font-bold">
+                {data[data.length - 1][dataKey]}
+                {unit}
+              </span>
+              <span className="text-sm text-gray-500">
+                Last updated: {data[data.length - 1].creation_date}
+              </span>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 }
-
