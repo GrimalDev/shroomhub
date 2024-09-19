@@ -1,15 +1,28 @@
 services:
   backend:
+    env_file: ".env"
     container_name: shroomhub-backend
     build:
       dockerfile: Dockerfile
-      context: ./hub/backend
+      context: ${PROJECT_ROOT_PATH}/hub/backend
     ports:
       - "4040:4040"
     networks:
       - backend
     volumes:
-      - ./hub/backend:/opt/app/api
+      - ${PROJECT_ROOT_PATH}/hub/backend:/opt/app/api
+  frontend:
+    env_file: ".env"
+    container_name: shroomhub-frontend
+    build:
+      dockerfile: Dockerfile
+      context: ${PROJECT_ROOT_PATH}/hub/frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - backend
+    volumes:
+      - ${PROJECT_ROOT_PATH}/hub/frontend:/app
 
 networks:
   backend:

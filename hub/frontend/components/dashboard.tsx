@@ -52,7 +52,6 @@ async function fetchSensorData(): Promise<SensorData[]> {
       creation_date: new Date(record.creation_date).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false,
         timeZone: "UTC",
       }),
       humidity: record.humi,
@@ -187,7 +186,23 @@ export function Dashboard() {
   );
 }
 
-function MetricCard({ title, data, dataKey, unit, color, fullWidth = false }) {
+interface MetricCardProps {
+  title: string;
+  data: SensorData[];
+  dataKey: keyof SensorData;
+  unit: string;
+  color: string;
+  fullWidth?: boolean;
+}
+
+function MetricCard({
+  title,
+  data,
+  dataKey,
+  unit,
+  color,
+  fullWidth = false,
+}: MetricCardProps) {
   return (
     <Card className={fullWidth ? "w-full" : "w-full md:w-auto"}>
       <CardHeader>
