@@ -4,11 +4,11 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 
 ---
 
-> [!ATTENTION]
+> [!IMPORTANT]
 >
 > **Documentation in progress**
 >
-> [!ATTENTION]
+> [!IMPORTANT]
 
 > [!NOTE]
 >
@@ -58,8 +58,8 @@ You shold have some form of [PIO setup](https://docs.platformio.org/en/latest/co
 - [ ] Support for more platforms
 - [ ] Add Basic Arduino IDE support ?
 
-> [!ATTENTION]
+> [!IMPORTANT]
 >
 > **Documentation in progress**
 >
-> [!ATTENTION]
+> [!IMPORTANT]
