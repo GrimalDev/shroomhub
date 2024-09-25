@@ -1,5 +1,6 @@
 "use client";
 
+import moment from "moment";
 import {
   LineChart,
   Line,
@@ -26,6 +27,7 @@ import {
   LayoutDashboard,
   Settings,
   User,
+  Menu,
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
@@ -49,11 +51,7 @@ async function fetchSensorData(): Promise<SensorData[]> {
     const data = await response.json();
 
     return data.map((record: any) => ({
-      creation_date: new Date(record.creation_date).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "UTC",
-      }),
+      creation_date: moment.utc(record.creation_date).local().format("HH:mm"),
       humidity: record.humi,
       temperature: record.temp,
       co2: record.co2,
@@ -76,28 +74,9 @@ export function Dashboard() {
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-        <div className="p-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            ShroomHub
-          </h2>
-        </div>
-        <nav className="mt-4">
-          <a
-            href="#"
-            className="flex items-center px-4 py-2 text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-200"
-          >
-            <LayoutDashboard className="mr-3 h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="#"
-            className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-          >
-            <Settings className="mr-3 h-5 w-5" />
-            Settings
-          </a>
-        </nav>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:block w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+        <SidebarContent />
       </aside>
 
       <main className="flex-1 overflow-y-auto">
@@ -107,6 +86,35 @@ export function Dashboard() {
               Dashboard
             </h1>
             <div className="flex items-center">
+              {/* Mobile Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="lg:hidden mr-2"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Menu</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="icon"
+                className="mr-2 lg:hidden"
+              />
               <Button variant="outline" size="icon" className="mr-2">
                 <Bell className="h-4 w-4" />
               </Button>
@@ -239,5 +247,34 @@ function MetricCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// New component for sidebar content
+function SidebarContent() {
+  return (
+    <>
+      <div className="p-4">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          ShroomHub
+        </h2>
+      </div>
+      <nav className="mt-4">
+        <a
+          href="#"
+          className="flex items-center px-4 py-2 text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-200"
+        >
+          <LayoutDashboard className="mr-3 h-5 w-5" />
+          Dashboard
+        </a>
+        <a
+          href="#"
+          className="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+        >
+          <Settings className="mr-3 h-5 w-5" />
+          Settings
+        </a>
+      </nav>
+    </>
   );
 }
