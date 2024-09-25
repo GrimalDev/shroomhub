@@ -1,3 +1,6 @@
 .ccls-cache
 .env
 .DS_Store
+sensor/.pio
+sensor/.pio/*
+sensor/.ccls-cache
