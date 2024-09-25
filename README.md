@@ -4,6 +4,12 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 
 ---
 
+> [!ATTENTION]
+>
+> **Documentation in progress**
+>
+> [!ATTENTION]
+
 > [!NOTE]
 >
 > All test, build or startup scripts can be found in the .run folder:
@@ -11,6 +17,11 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 > ```bash
 > bash .run/<script>
 > ```
+
+# Deployment
+
+All deployment or tests can be done using the [docker compose](https://github.com/GrimalDev/shroomhub/blob/main/docker-compose.yml) description file.
+But if you still want to go ahead, you might want to take a look a those sections:
 
 ## Base microcontroller code
 
@@ -22,6 +33,8 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 - Mist water atomizer
 
 ### How to build
+
+You shold have some form of [PIO setup](https://docs.platformio.org/en/latest/core/installation/index.html) before going any further.
 
 1. _(optional)_ Run the build script `.run/build`.
 2. Connect your ESP (For now only ESP8266).
@@ -43,3 +56,10 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 
 - [x] "Parrallel" probe reading
 - [ ] Support for more platforms
+- [ ] Add Basic Arduino IDE support ?
+
+> [!ATTENTION]
+>
+> **Documentation in progress**
+>
+> [!ATTENTION]
