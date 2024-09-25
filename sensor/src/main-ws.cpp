@@ -1,34 +1,31 @@
 #include "clientConfig.h"
-#include <Adafruit_SSD1306.h>
-#include <Adafruit_VEML7700.h>
-#include <Arduino.h>
-#include <ArduinoJson.h>
-#include <ArduinoWebsockets.h>
-#include <DHT.h>
-#include <ESP8266WiFi.h>
-#include <Wire.h>
 
 using namespace websockets;
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define foggerPin 14
-#define DHTPIN 12
-#define co2Pin A0
-#define co2Zero 76.63
+const int OLED_RESET = -1;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // Adafruit_VEML7700 veml = Adafruit_VEML7700();
-DHT dht(DHTPIN, DHT22);
+DHT dht(DHT_PIN, DHT22);
 WebsocketsClient client;
 
-unsigned long lastReconnectAttempt = 0;
-unsigned long lastWSTime = 0;
-float humi = 0;
-float temp = 0;
-int co2ppm = 0;
-float foggerGoal = 90;
+long lastReconnectAttempt = 0;
+long lastWSTime = 0;
+long sensorLastCollectionMillis;
+long sensorLastReadMillis; 
+bool sensorDataReady = false;
+int sensorNumberReads = 0;
+
+struct SensorData {
+  float dataTotals = 0;
+  float getCollectionAverage() { return dataTotals / SENSOR_COLLECTION_SIZE; };
+  void (*collectData)();
+};
+
+SensorData Humidity;
+SensorData Temperature;
+SensorData Co2ppm;
+float foggerGoal = FOGGER_DEFAULT_GOAL;
 
 void connectToWebSocket() {
   Serial.println("Connecting to WebSocket...");
@@ -55,36 +52,35 @@ void responseHandler(WebsocketsMessage message) {
   }
 }
 
-float getTemperature() { return dht.readTemperature(); }
-
-void getLight() {}
-
-float getHumidity() { return dht.readHumidity(); }
-
-int getC02() {
-  int co2now[10];
-  int co2raw = 0;
-  int co2comp = 0;
-  int zzz = 0;
-
-  for (int x = 0; x < 10; x++) {
-    co2now[x] = analogRead(A0);
-    delay(200);
+void readHumidity() {
+  float tempH = dht.readHumidity();
+  if (isnan(tempH)) {
+    Serial.println("Failed to read humidity from DHT sensor!");
+  } else {
+    Humidity.dataTotals += tempH;
   }
+}
 
-  for (int x = 0; x < 10; x++) {
-    zzz = zzz + co2now[x];
+void readTemperature() {
+  float tempT = dht.readTemperature();
+  if (isnan(tempT)) {
+    Serial.println("Failed to read humidity from DHT sensor!");
+  } else {
+    Temperature.dataTotals += tempT;
   }
-  co2raw = zzz / 10;
-  co2comp = co2raw - co2Zero;
-  return map(co2comp, 0, 1023, 400, 5000);
+}
+
+void readLight() {}
+
+void readCo2ppm() {
+  Co2ppm.dataTotals += analogRead(A0);
 }
 
 void fogger(float goal) {
   if (goal < foggerGoal) {
-    digitalWrite(foggerPin, HIGH);
+    digitalWrite(FOGGER_PIN, HIGH);
   } else {
-    digitalWrite(foggerPin, LOW);
+    digitalWrite(FOGGER_PIN, LOW);
   }
 }
 
@@ -144,18 +140,36 @@ void setup() {
 
   connectToWebSocket();
 
-  pinMode(foggerPin, OUTPUT);
-  pinMode(co2Pin, INPUT);
+  pinMode(FOGGER_PIN, OUTPUT);
+  pinMode(CO2_PIN, INPUT);
 
   dht.begin();
-}
 
-void loop() {
+  Humidity.collectData = readHumidity;
+  Temperature.collectData = readTemperature;
+  Co2ppm.collectData = readCo2ppm;
+
   display.clearDisplay();
   display.setCursor(0, 0);
 
+  if (client.available()) {
+    display.println("Server found");
+  } else {
+    display.println("No server found");
+  }
+
+  display.println("Humidity: ...%");
+  display.println("Fogger Goal: " + String(foggerGoal) + "%");
+  display.println("Temperature: ...C");
+  display.println("CO2: ...ppm");
+}
+
+void loop() {
   // Check if WiFi is connected
   if (WiFi.status() != WL_CONNECTED) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+
     display.println("WiFi disconnected. Reconnecting...");
     Serial.println("WiFi disconnected. Reconnecting...");
     display.display();
@@ -173,57 +187,79 @@ void loop() {
     connectToWebSocket(); // Try to reconnect WebSocket after WiFi is back
   }
 
-  // messages if connected to server or not
-  if (client.available()) {
-    display.println("Server found");
-    Serial.println("Server found");
-  } else {
-    display.println("No server");
-    Serial.println("No server");
-  }
-
-  // Keep WebSocket client alive
-  if (client.available()) {
-    client.poll();
-  }
-
   // Attempt WebSocket reconnection if disconnected
   if (!client.available()) {
-    unsigned long currentTime = millis();
+    long currentTime = millis();
     if (currentTime - lastReconnectAttempt > 5000) { // Retry every 5 seconds
       connectToWebSocket();
       lastReconnectAttempt = currentTime;
     }
+  } else {
+    // Keep WebSocket client alive
+    client.poll();
   }
 
-  // float lux = veml.readLux();
+  // Run tasks if it's time
+  long currentMillis = millis();
 
-  humi = getHumidity();
-  temp = getTemperature();
-  co2ppm = getC02();
+  if (currentMillis - sensorLastCollectionMillis >= SENSOR_COLLECTION_COOLDOWN_TIME) {
+    if (currentMillis - sensorLastReadMillis >= SENSOR_READ_COOLDOWN_TIME) {
+      Humidity.collectData();
+      Temperature.collectData();
+      Co2ppm.collectData();
 
-  display.println("Humidity: " + String(humi) + "%");
-  display.println("Fogger Goal: " + String(foggerGoal) + "%");
-  display.println("Temperature: " + String(temp) + "C");
-  display.println("CO2: " + String(co2ppm) + " ppm");
-  // display.println("Light: " + String(lux) + " lux");
+      sensorNumberReads ++;
 
-  JsonDocument jsonDoc;
-  jsonDoc["humi"] = humi;
-  jsonDoc["temp"] = temp;
-  jsonDoc["co2"] = co2ppm;
-  jsonDoc["foggerGoal"] = foggerGoal;
-
-  // Serialize JSON to string
-  String jsonData;
-  serializeJson(jsonDoc, jsonData);
-
-  if (client.available() && millis() - lastWSTime > 2000) {
-    client.send(jsonData);
-    lastWSTime = millis();
+      sensorLastReadMillis = currentMillis;
+    }
   }
 
-  fogger(humi);
+  // Check if tasks are not ready
+  if (sensorNumberReads >= SENSOR_COLLECTION_SIZE) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+
+    if (client.available()) {
+      display.println("Server found");
+    } else {
+      display.println("No server found");
+    }
+     
+    float humi = Humidity.getCollectionAverage();
+    float temp = Temperature.getCollectionAverage();
+    float co2 = Co2ppm.getCollectionAverage();
+
+    // Process the data
+    display.println("Humidity: " + String(humi) + "%");
+    display.println("Fogger Goal: " + String(foggerGoal) + "%");
+    display.println("Temperature: " + String(temp) + "C");
+    display.println("CO2: " + String(co2) + " ppm");
+    // display.println("Light: " + String(lux) + " lux");
+
+    JsonDocument jsonDoc;
+    jsonDoc["humi"] = humi;
+    jsonDoc["temp"] = temp;
+    jsonDoc["co2"] = co2;
+    jsonDoc["foggerGoal"] = foggerGoal;
+
+    // Serialize JSON to string
+    String jsonData;
+    serializeJson(jsonDoc, jsonData);
+
+    if (client.available() && millis() - lastWSTime > 2000) {
+      client.send(jsonData);
+      lastWSTime = millis();
+    }
+
+    fogger(humi);
+
+    sensorNumberReads = 0;
+    Humidity.dataTotals = 0;
+    Temperature.dataTotals = 0;
+    Co2ppm.dataTotals = 0;
+
+    sensorLastCollectionMillis = currentMillis;
+  }
 
   display.display();
 }
