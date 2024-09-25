@@ -7,8 +7,6 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 > [!IMPORTANT]
 >
 > **Documentation in progress**
->
-> [!IMPORTANT]
 
 > [!NOTE]
 >
@@ -61,5 +59,3 @@ You shold have some form of [PIO setup](https://docs.platformio.org/en/latest/co
 > [!IMPORTANT]
 >
 > **Documentation in progress**
->
-> [!IMPORTANT]
