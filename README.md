@@ -41,5 +41,5 @@ Schroomhub is a contraction of mushroom and hub. The goal is to have a visual gu
 
 # Roadmap
 
-[x] "Parrallel" probe reading
-[ ] Support for more platforms
+- [x] "Parrallel" probe reading
+- [ ] Support for more platforms
